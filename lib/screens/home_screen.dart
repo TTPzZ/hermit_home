@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -8,12 +9,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Giá trị khởi tạo cho nhiệt độ, độ ẩm, ánh sáng
   double temperature = 28.0;
   double humidity = 65.0;
   double light = 300.0;
 
-  // Trạng thái bật/tắt riêng cho từng cảm biến
   bool isTemperatureSensorEnabled = true;
   bool isHumiditySensorEnabled = true;
   bool isLightSensorEnabled = true;
@@ -22,224 +21,183 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Nửa trên: Camera (Placeholder)
-        Container(
-          height:
-              MediaQuery.of(context).size.height * 0.5, // Chiếm nửa màn hình
-          color: Colors.grey[300],
-          child: const Center(
-            child: Text(
-              'Camera Placeholder\n(Quay vào bể)',
-              style: TextStyle(fontSize: 20, color: Colors.black54),
-              textAlign: TextAlign.center,
+        ClipRRect(
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(40),
+            bottomRight: Radius.circular(40),
+          ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              margin: const EdgeInsets.only(top: 3),
+              width: MediaQuery.of(context).size.width * 0.99,
+              height: MediaQuery.of(context).size.height * 0.45,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF0F2027),
+                    Color(0xFF203A43),
+                    Color(0xFF2C5364),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(
+                  40,
+                ), // Bo tròn đều 4 góc với bán kính 40
+                // borderRadius: const BorderRadius.only(
+                //   bottomLeft: Radius.circular(40),
+                //   bottomRight: Radius.circular(40),
+                // ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.videocam, size: 60, color: Colors.white),
+                    SizedBox(height: 10),
+                    Text(
+                      'Camera Bể Nuôi',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
-        // Nửa dưới: Điều chỉnh nhiệt độ, độ ẩm, ánh sáng
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Dòng 1: Nhiệt độ
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Nhiệt độ:', style: TextStyle(fontSize: 18)),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove),
-                          onPressed:
-                              isTemperatureSensorEnabled
-                                  ? () {
-                                    setState(() {
-                                      temperature -= 0.5; // Giảm 0.5°C
-                                    });
-                                  }
-                                  : null, // Vô hiệu hóa nếu cảm biến nhiệt độ tắt
-                        ),
-                        Text(
-                          '${temperature.toStringAsFixed(1)}°C',
-                          style: const TextStyle(fontSize: 18),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed:
-                              isTemperatureSensorEnabled
-                                  ? () {
-                                    setState(() {
-                                      temperature += 0.5; // Tăng 0.5°C
-                                    });
-                                  }
-                                  : null, // Vô hiệu hóa nếu cảm biến nhiệt độ tắt
-                        ),
-                        const SizedBox(width: 10),
-                        // Nút bật/tắt cảm biến nhiệt độ
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              isTemperatureSensorEnabled =
-                                  !isTemperatureSensorEnabled;
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                isTemperatureSensorEnabled
-                                    ? Colors.red
-                                    : Colors.green,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                          ),
-                          child: Text(
-                            isTemperatureSensorEnabled ? 'Tắt' : 'Bật',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                _buildControlRow(
+                  'Nhiệt độ',
+                  '${temperature.toStringAsFixed(1)}°C',
+                  isTemperatureSensorEnabled,
+                  Icons.thermostat,
+                  () {
+                    setState(() {
+                      isTemperatureSensorEnabled = !isTemperatureSensorEnabled;
+                    });
+                  },
                 ),
-                const SizedBox(height: 20),
-                // Dòng 2: Độ ẩm
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Độ ẩm:', style: TextStyle(fontSize: 18)),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove),
-                          onPressed:
-                              isHumiditySensorEnabled
-                                  ? () {
-                                    setState(() {
-                                      humidity -= 1.0; // Giảm 1%
-                                    });
-                                  }
-                                  : null, // Vô hiệu hóa nếu cảm biến độ ẩm tắt
-                        ),
-                        Text(
-                          '${humidity.toStringAsFixed(1)}%',
-                          style: const TextStyle(fontSize: 18),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed:
-                              isHumiditySensorEnabled
-                                  ? () {
-                                    setState(() {
-                                      humidity += 1.0; // Tăng 1%
-                                    });
-                                  }
-                                  : null, // Vô hiệu hóa nếu cảm biến độ ẩm tắt
-                        ),
-                        const SizedBox(width: 10),
-                        // Nút bật/tắt cảm biến độ ẩm
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              isHumiditySensorEnabled =
-                                  !isHumiditySensorEnabled;
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                isHumiditySensorEnabled
-                                    ? Colors.red
-                                    : Colors.green,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                          ),
-                          child: Text(
-                            isHumiditySensorEnabled ? 'Tắt' : 'Bật',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                const SizedBox(height: 15),
+                _buildControlRow(
+                  'Độ ẩm',
+                  '${humidity.toStringAsFixed(1)}%',
+                  isHumiditySensorEnabled,
+                  Icons.opacity,
+                  () {
+                    setState(() {
+                      isHumiditySensorEnabled = !isHumiditySensorEnabled;
+                    });
+                  },
                 ),
-                const SizedBox(height: 20),
-                // Dòng 3: Ánh sáng
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Ánh sáng:', style: TextStyle(fontSize: 18)),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove),
-                          onPressed:
-                              isLightSensorEnabled
-                                  ? () {
-                                    setState(() {
-                                      light -= 10.0; // Giảm 10 lux
-                                    });
-                                  }
-                                  : null, // Vô hiệu hóa nếu cảm biến ánh sáng tắt
-                        ),
-                        Text(
-                          '${light.toStringAsFixed(0)} lux',
-                          style: const TextStyle(fontSize: 18),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed:
-                              isLightSensorEnabled
-                                  ? () {
-                                    setState(() {
-                                      light += 10.0; // Tăng 10 lux
-                                    });
-                                  }
-                                  : null, // Vô hiệu hóa nếu cảm biến ánh sáng tắt
-                        ),
-                        const SizedBox(width: 10),
-                        // Nút bật/tắt cảm biến ánh sáng
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              isLightSensorEnabled = !isLightSensorEnabled;
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                isLightSensorEnabled
-                                    ? Colors.red
-                                    : Colors.green,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                          ),
-                          child: Text(
-                            isLightSensorEnabled ? 'Tắt' : 'Bật',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                const SizedBox(height: 15),
+                _buildControlRow(
+                  'Ánh sáng',
+                  '${light.toStringAsFixed(0)} lux',
+                  isLightSensorEnabled,
+                  Icons.light_mode,
+                  () {
+                    setState(() {
+                      isLightSensorEnabled = !isLightSensorEnabled;
+                    });
+                  },
                 ),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildControlRow(
+    String label,
+    String value,
+    bool isEnabled,
+    IconData icon,
+    VoidCallback onToggle,
+  ) {
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 300),
+      scale: isEnabled ? 1.0 : 0.95,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 8),
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Colors.blueAccent, size: 24),
+                const SizedBox(width: 10),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: isEnabled ? 1.0 : 0.5,
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Transform.scale(
+                  scale: 0.85,
+                  child: Switch(
+                    value: isEnabled,
+                    onChanged: (value) => onToggle(),
+                    activeTrackColor: Colors.blueAccent,
+                    activeColor: Colors.white,
+                    inactiveThumbColor: Colors.grey,
+                    inactiveTrackColor: Colors.grey[300],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
