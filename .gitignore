@@ -61,3 +61,4 @@ build/
 google-services.json
 keystore.properties
 api_keys.dart
+.env
