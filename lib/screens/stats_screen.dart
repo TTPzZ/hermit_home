@@ -52,11 +52,10 @@ class _StatsScreenState extends State<StatsScreen> {
       setState(() {
         _isLoading = true; // Hiển thị loading khi làm mới
       });
-      final stats = await _statsCollection.find({
-        'userId': widget.userId,
-        '\$query': {},
-        '\$orderby': {'timestamp': -1}, // Sắp xếp giảm dần theo timestamp
-      }).toList();
+      final stats = await _statsCollection
+          .find(mongo.where.eq('userId', widget.userId).sortBy('timestamp',
+              descending: true)) // Sắp xếp giảm dần theo timestamp
+          .toList();
       setState(() {
         statsData = stats.cast<Map<String, dynamic>>();
         _isLoading = false;

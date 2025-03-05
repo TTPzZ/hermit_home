@@ -4,6 +4,7 @@ import 'screens/home_screen.dart';
 import 'screens/stats_screen.dart';
 import 'screens/settings_screen.dart';
 import 'login_page.dart'; // Import LoginPage
+import 'services/update_stats_service.dart'; // Import UpdateStatsService
 
 void main() {
   runApp(const HermitHomeApp());
@@ -60,6 +61,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; // Mặc định chọn tab Home (giữa)
   late List<Widget> _screens;
+  late UpdateStatsService _updateStatsService;
 
   final List<IconData> _icons = [Icons.bar_chart, Icons.home, Icons.settings];
   final List<String> _labels = ['Stats', 'Home', 'Settings'];
@@ -67,12 +69,21 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    // Khởi tạo UpdateStatsService
+    _updateStatsService = UpdateStatsService();
+
     // Khởi tạo danh sách screens
     _screens = [
-      StatsScreen(userId: widget.userId), // Chỉ truyền userId
-      const HomeScreen(),
-      const SettingsScreen(),
+      StatsScreen(userId: widget.userId),
+      HomeScreen(userId: widget.userId),
+      SettingsScreen(userId: widget.userId), // Truyền userId vào SettingsScreen
     ];
+  }
+
+  @override
+  void dispose() {
+    _updateStatsService.dispose();
+    super.dispose();
   }
 
   void _onItemTapped(int index) {
