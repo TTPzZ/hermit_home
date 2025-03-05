@@ -50,7 +50,8 @@ class HermitHomeApp extends StatelessWidget {
 }
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final String userId; // Nhận userId từ LoginPage
+  const MainScreen({super.key, required this.userId});
 
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -58,15 +59,21 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; // Mặc định chọn tab Home (giữa)
-
-  final List<Widget> _screens = [
-    const StatsScreen(),
-    const HomeScreen(),
-    const SettingsScreen(),
-  ];
+  late List<Widget> _screens;
 
   final List<IconData> _icons = [Icons.bar_chart, Icons.home, Icons.settings];
   final List<String> _labels = ['Stats', 'Home', 'Settings'];
+
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo danh sách screens
+    _screens = [
+      StatsScreen(userId: widget.userId), // Chỉ truyền userId
+      const HomeScreen(),
+      const SettingsScreen(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;

@@ -45,6 +45,28 @@ app.get('/sensor', async (req, res) => {
     }
 });
 
+const UserSchema = new mongoose.Schema({
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true }
+});
+const User = mongoose.model('User', UserSchema);
+
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user || user.password !== password) {
+            return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng!' });
+        }
+        res.json({ message: 'Đăng nhập thành công!', user });
+    } catch (err) {
+        res.status(500).json({ message: 'Lỗi server' });
+    }
+});
+
+
+
 // Chạy server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`));

@@ -1,41 +1,123 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart'; // Import animate_do
+import 'package:mongo_dart/mongo_dart.dart'
+    as mongo; // Thêm alias để tránh xung đột
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // Import flutter_dotenv
 import 'main.dart'; // Import MainScreen để điều hướng
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   String _email = '';
   String _password = '';
+  late mongo.Db _db; // Sử dụng alias mongo
+  late mongo.DbCollection _usersCollection;
+  bool _isConnected = false; // Biến để kiểm tra trạng thái kết nối
+  String? _connectionError; // Biến để lưu thông báo lỗi kết nối
+
+  @override
+  void initState() {
+    super.initState();
+    _connectToMongoDB();
+  }
+
+  // Kết nối đến MongoDB Atlas
+  Future<void> _connectToMongoDB() async {
+    try {
+      // Bước 1: Tải file .env và lấy chuỗi kết nối
+      await dotenv.load(fileName: ".env");
+      final mongoUrl = dotenv.env['MONGO_URL'];
+      if (mongoUrl == null || mongoUrl.isEmpty) {
+        throw Exception('MONGO_URL không được tìm thấy trong file .env');
+      }
+      debugPrint('MONGO_URL: $mongoUrl'); // In chuỗi kết nối để kiểm tra
+
+      // Bước 2: Khởi tạo kết nối với MongoDB Atlas
+      _db = await mongo.Db.create(mongoUrl);
+      await _db.open(); // Bỏ tham số connectionTimeout
+
+      // Bước 3: Lấy collection 'users' từ database HermitHome
+      _usersCollection = _db.collection('users');
+
+      setState(() {
+        _isConnected = true; // Đánh dấu kết nối thành công
+      });
+      debugPrint('Kết nối MongoDB thành công');
+    } catch (e) {
+      setState(() {
+        _isConnected = false; // Đánh dấu kết nối thất bại
+        _connectionError = e.toString(); // Lưu thông báo lỗi
+      });
+      debugPrint('Lỗi khi kết nối MongoDB: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không thể kết nối đến cơ sở dữ liệu: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _db.close();
+    super.dispose();
+  }
+
+  // Hàm kiểm tra đăng nhập với MongoDB và trả về userId
+  Future<String?> _checkCredentials(String email, String password) async {
+    if (!_isConnected) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'Không thể kết nối đến cơ sở dữ liệu: $_connectionError')),
+        );
+      }
+      return null;
+    }
+
+    try {
+      final user = await _usersCollection
+          .findOne(mongo.where.eq('email', email).eq('password', password));
+      if (user != null) {
+        return user['_id'].toString(); // Trả về userId dưới dạng chuỗi
+      }
+      return null; // Trả về null nếu không tìm thấy tài khoản
+    } catch (e) {
+      debugPrint('Lỗi khi kiểm tra thông tin đăng nhập: $e');
+      return null;
+    }
+  }
 
   // Hàm xử lý khi nhấn nút đăng nhập
-  void _login() {
+  Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      print('Email: $_email');
-      print('Password: $_password');
-
-      // Giả lập kiểm tra tài khoản mặc định
-      if (_email == 'admin@gmail.com' && _password == 'admin123') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng nhập thành công!')),
-        );
-
-        // Điều hướng sang MainScreen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-        );
+      String? userId = await _checkCredentials(_email, _password);
+      if (userId != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đăng nhập thành công!')),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MainScreen(userId: userId),
+            ),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email hoặc mật khẩu không đúng!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Email hoặc mật khẩu không đúng!')),
+          );
+        }
       }
     }
   }
@@ -243,7 +325,7 @@ class _LoginPageState extends State<LoginPage> {
                       delay: const Duration(milliseconds: 700),
                       child: TextButton(
                         onPressed: () {
-                          print('Chuyển sang trang đăng ký');
+                          debugPrint('Chuyển sang trang đăng ký');
                         },
                         child: const Text(
                           'Chưa có tài khoản? Đăng ký ngay',
