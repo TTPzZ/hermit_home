@@ -173,35 +173,35 @@ class _LoginPageState extends State<LoginPage> {
                     FadeInDown(
                       duration: const Duration(milliseconds: 800),
                       child: Image.asset(
-                        'assets/icon/Logo_hhome.png',
-                        width: 120,
-                        height: 120,
+                        'assets/icon/Logov3.png',
+                        width: 220,
+                        height: 220,
                         fit: BoxFit.contain,
                       ),
                     ),
                     const SizedBox(height: 10),
 
                     // Tiêu đề với hiệu ứng FadeIn
-                    FadeInDown(
-                      duration: const Duration(milliseconds: 800),
-                      delay: const Duration(milliseconds: 200),
-                      child: const Text(
-                        'Hermit Home',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black26,
-                              blurRadius: 10,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
+                    // FadeInDown(
+                    //   duration: const Duration(milliseconds: 800),
+                    //   delay: const Duration(milliseconds: 200),
+                    //   child: const Text(
+                    //     'Hermit Home',
+                    //     style: TextStyle(
+                    //       fontSize: 36,
+                    //       fontWeight: FontWeight.bold,
+                    //       color: Colors.white,
+                    //       shadows: [
+                    //         Shadow(
+                    //           color: Colors.black26,
+                    //           blurRadius: 10,
+                    //           offset: Offset(0, 2),
+                    //         ),
+                    //       ],
+                    //     ),
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 40),
 
                     // Trường nhập email với hiệu ứng SlideInUp
                     SlideInUp(

@@ -1,51 +1,75 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mongo_dart/mongo_dart.dart' as mongo;
 import '../login_page.dart'; // Import LoginPage để điều hướng khi đăng xuất
 
 class SettingsScreen extends StatefulWidget {
   final String userId; // Nhận userId từ MainScreen
-  const SettingsScreen({super.key, required this.userId});
+  final double minTemperature;
+  final double maxTemperature;
+  final double minHumidity;
+  final double maxHumidity;
+  final double minLight;
+  final double maxLight;
+  final bool isLoading; // Thêm trạng thái loading
+
+  const SettingsScreen({
+    super.key,
+    required this.userId,
+    required this.minTemperature,
+    required this.maxTemperature,
+    required this.minHumidity,
+    required this.maxHumidity,
+    required this.minLight,
+    required this.maxLight,
+    required this.isLoading,
+  });
 
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // Controller cho các TextField
-  final TextEditingController _minTempController = TextEditingController(
-    text: '20.0',
-  );
-  final TextEditingController _maxTempController = TextEditingController(
-    text: '35.0',
-  );
-  final TextEditingController _minHumidityController = TextEditingController(
-    text: '50.0',
-  );
-  final TextEditingController _maxHumidityController = TextEditingController(
-    text: '80.0',
-  );
-  final TextEditingController _minLightController = TextEditingController(
-    text: '200.0',
-  );
-  final TextEditingController _maxLightController = TextEditingController(
-    text: '500.0',
-  );
+  late TextEditingController _minTempController;
+  late TextEditingController _maxTempController;
+  late TextEditingController _minHumidityController;
+  late TextEditingController _maxHumidityController;
+  late TextEditingController _minLightController;
+  late TextEditingController _maxLightController;
 
   late mongo.Db _db;
   late mongo.DbCollection _thresholdsCollection;
 
-  // Biến để lưu dữ liệu từ current_stats
-  Map<String, dynamic>? _currentStats;
-
   @override
   void initState() {
     super.initState();
+    // Khởi tạo các controller với giá trị từ MainScreen
+    _minTempController =
+        TextEditingController(text: widget.minTemperature.toStringAsFixed(1));
+    _maxTempController =
+        TextEditingController(text: widget.maxTemperature.toStringAsFixed(1));
+    _minHumidityController =
+        TextEditingController(text: widget.minHumidity.toStringAsFixed(1));
+    _maxHumidityController =
+        TextEditingController(text: widget.maxHumidity.toStringAsFixed(1));
+    _minLightController =
+        TextEditingController(text: widget.minLight.toStringAsFixed(1));
+    _maxLightController =
+        TextEditingController(text: widget.maxLight.toStringAsFixed(1));
+
     _connectToMongoDB();
-    _loadThresholds(); // Tải ngưỡng hiện tại từ MongoDB
-    _fetchCurrentStats(); // Tải dữ liệu từ current_stats qua API
+  }
+
+  @override
+  void didUpdateWidget(SettingsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Cập nhật lại giá trị của các controller khi widget được rebuild với dữ liệu mới
+    _minTempController.text = widget.minTemperature.toStringAsFixed(1);
+    _maxTempController.text = widget.maxTemperature.toStringAsFixed(1);
+    _minHumidityController.text = widget.minHumidity.toStringAsFixed(1);
+    _maxHumidityController.text = widget.maxHumidity.toStringAsFixed(1);
+    _minLightController.text = widget.minLight.toStringAsFixed(1);
+    _maxLightController.text = widget.maxLight.toStringAsFixed(1);
   }
 
   Future<void> _connectToMongoDB() async {
@@ -68,63 +92,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _loadThresholds() async {
-    try {
-      final thresholds = await _thresholdsCollection
-          .findOne(mongo.where.eq('userId', widget.userId));
-      if (thresholds != null) {
-        setState(() {
-          _minTempController.text =
-              thresholds['minTemperature']?.toString() ?? '20.0';
-          _maxTempController.text =
-              thresholds['maxTemperature']?.toString() ?? '35.0';
-          _minHumidityController.text =
-              thresholds['minHumidity']?.toString() ?? '50.0';
-          _maxHumidityController.text =
-              thresholds['maxHumidity']?.toString() ?? '80.0';
-          _minLightController.text =
-              thresholds['minLight']?.toString() ?? '200.0';
-          _maxLightController.text =
-              thresholds['maxLight']?.toString() ?? '500.0';
-        });
-      }
-    } catch (e) {
-      debugPrint('Lỗi khi tải ngưỡng từ MongoDB: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không thể tải ngưỡng: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _fetchCurrentStats() async {
-    try {
-      final response = await http.get(
-        Uri.parse(
-            'http://192.168.224.212:3000/get-current-stats/${widget.userId}'),
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _currentStats = jsonDecode(response.body);
-        });
-      } else {
-        throw Exception('Failed to load current stats: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('Lỗi khi tải dữ liệu current_stats: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không thể tải dữ liệu hiện tại: $e')),
-        );
-      }
-    }
-  }
-
   Future<void> _saveThresholds() async {
     try {
-      // Lấy giá trị từ các TextField và chuyển thành double
       final thresholds = {
         'userId': widget.userId,
         'minTemperature': double.tryParse(_minTempController.text) ?? 20.0,
@@ -136,13 +105,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'updatedAt': DateTime.now().toUtc().toIso8601String(),
       };
 
-      // Cập nhật ngưỡng vào collection thresholds
       await _thresholdsCollection.updateOne(
         mongo.where.eq('userId', widget.userId),
-        {
-          '\$set': thresholds,
-        },
-        upsert: true, // Nếu không có bản ghi, chèn mới
+        {'\$set': thresholds},
+        upsert: true,
       );
 
       if (mounted) {
@@ -232,156 +198,123 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Tiêu đề
-              const Text(
-                'Cài đặt ngưỡng thông số',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Hiển thị dữ liệu từ current_stats
-              if (_currentStats != null) ...[
-                Text(
-                  'Dữ liệu hiện tại:',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 10),
-                Text('Nhiệt độ: ${_currentStats!['temperature']} °C'),
-                Text('Độ ẩm: ${_currentStats!['humidity']} %'),
-                Text('Ánh sáng: ${_currentStats!['light']} lux'),
-                const SizedBox(height: 24),
-              ] else ...[
-                const Text(
-                  'Đang tải dữ liệu hiện tại...',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-                const SizedBox(height: 24),
-              ],
-
-              // Nhiệt độ
-              _buildSection('Nhiệt độ (°C)', Icons.thermostat, [
-                _buildInputField('Tối thiểu', _minTempController),
-                const SizedBox(width: 10),
-                _buildInputField('Tối đa', _maxTempController),
-              ]),
-
-              // Độ ẩm
-              _buildSection('Độ ẩm (%)', Icons.water_drop, [
-                _buildInputField('Tối thiểu', _minHumidityController),
-                const SizedBox(width: 10),
-                _buildInputField('Tối đa', _maxHumidityController),
-              ]),
-
-              // Ánh sáng
-              _buildSection('Ánh sáng (lux)', Icons.wb_sunny, [
-                _buildInputField('Tối thiểu', _minLightController),
-                const SizedBox(width: 10),
-                _buildInputField('Tối đa', _maxLightController),
-              ]),
-
-              const SizedBox(height: 40),
-
-              // Nút Lưu Cài Đặt
-              Center(
-                child: GestureDetector(
-                  onTap: _saveThresholds, // Gọi hàm lưu ngưỡng
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.blueAccent, Colors.cyan],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blueAccent.withOpacity(0.4),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Text(
-                      'Lưu cài đặt',
+      body: widget.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Cài đặt ngưỡng thông số',
                       style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
                       ),
                     ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Nút Đăng Xuất
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Đã đăng xuất!')),
-                    );
-                    // Điều hướng về LoginPage và xóa stack điều hướng
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const LoginPage()),
-                      (Route<dynamic> route) => false, // Xóa toàn bộ stack
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.redAccent, Colors.orangeAccent],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.redAccent.withOpacity(0.4),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                    const SizedBox(height: 24),
+                    _buildSection('Nhiệt độ (°C)', Icons.thermostat, [
+                      _buildInputField('Tối thiểu', _minTempController),
+                      const SizedBox(width: 10),
+                      _buildInputField('Tối đa', _maxTempController),
+                    ]),
+                    _buildSection('Độ ẩm (%)', Icons.water_drop, [
+                      _buildInputField('Tối thiểu', _minHumidityController),
+                      const SizedBox(width: 10),
+                      _buildInputField('Tối đa', _maxHumidityController),
+                    ]),
+                    _buildSection('Ánh sáng (lux)', Icons.wb_sunny, [
+                      _buildInputField('Tối thiểu', _minLightController),
+                      const SizedBox(width: 10),
+                      _buildInputField('Tối đa', _maxLightController),
+                    ]),
+                    const SizedBox(height: 40),
+                    Center(
+                      child: GestureDetector(
+                        onTap: _saveThresholds,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 40,
+                            vertical: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Colors.blueAccent, Colors.cyan],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blueAccent.withOpacity(0.4),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            'Lưu cài đặt',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                    child: const Text(
-                      'Đăng Xuất',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Đã đăng xuất!')),
+                          );
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const LoginPage()),
+                            (Route<dynamic> route) => false,
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 40,
+                            vertical: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Colors.redAccent, Colors.orangeAccent],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.redAccent.withOpacity(0.4),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            'Đăng Xuất',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

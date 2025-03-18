@@ -253,11 +253,11 @@ class _StatsScreenState extends State<StatsScreen> {
                     ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addRandomStat,
-        backgroundColor: Colors.blueAccent,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: _addRandomStat,
+      //   backgroundColor: Colors.blueAccent,
+      //   child: const Icon(Icons.add, color: Colors.white),
+      // ),
     );
   }
 
