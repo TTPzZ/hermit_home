@@ -32,4 +32,4 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icon/Avatar_Hhome.jpg" # Sửa "asstes" thành "assets"
+  image_path: "assets/icon/Logov5.jpg" # Sửa "asstes" thành "assets"
