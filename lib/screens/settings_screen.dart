@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mongo_dart/mongo_dart.dart' as mongo;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:mongo_dart/mongo_dart.dart' as mongo;
 import '../login_page.dart'; // Import LoginPage để điều hướng khi đăng xuất
 
 class SettingsScreen extends StatefulWidget {
@@ -35,11 +37,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late mongo.Db _db;
   late mongo.DbCollection _thresholdsCollection;
 
+  // Biến để lưu dữ liệu từ current_stats
+  Map<String, dynamic>? _currentStats;
+
   @override
   void initState() {
     super.initState();
     _connectToMongoDB();
     _loadThresholds(); // Tải ngưỡng hiện tại từ MongoDB
+    _fetchCurrentStats(); // Tải dữ liệu từ current_stats qua API
   }
 
   Future<void> _connectToMongoDB() async {
@@ -87,6 +93,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Không thể tải ngưỡng: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _fetchCurrentStats() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'http://192.168.224.212:3000/get-current-stats/${widget.userId}'),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _currentStats = jsonDecode(response.body);
+        });
+      } else {
+        throw Exception('Failed to load current stats: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Lỗi khi tải dữ liệu current_stats: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không thể tải dữ liệu hiện tại: $e')),
         );
       }
     }
@@ -218,6 +248,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Hiển thị dữ liệu từ current_stats
+              if (_currentStats != null) ...[
+                Text(
+                  'Dữ liệu hiện tại:',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 10),
+                Text('Nhiệt độ: ${_currentStats!['temperature']} °C'),
+                Text('Độ ẩm: ${_currentStats!['humidity']} %'),
+                Text('Ánh sáng: ${_currentStats!['light']} lux'),
+                const SizedBox(height: 24),
+              ] else ...[
+                const Text(
+                  'Đang tải dữ liệu hiện tại...',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // Nhiệt độ
               _buildSection('Nhiệt độ (°C)', Icons.thermostat, [

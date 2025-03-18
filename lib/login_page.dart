@@ -70,6 +70,31 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // Hàm kiểm tra đăng nhập với MongoDB và trả về userId
+  // Future<String?> _checkCredentials(String email, String password) async {
+  //   if (!_isConnected) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //             content: Text(
+  //                 'Không thể kết nối đến cơ sở dữ liệu: $_connectionError')),
+  //       );
+  //     }
+  //     return null;
+  //   }
+
+  //   try {
+  //     final user = await _usersCollection
+  //         .findOne(mongo.where.eq('email', email).eq('password', password));
+  //     if (user != null) {
+  //       return user['_id'].toString(); // Trả về userId dưới dạng chuỗi
+  //     }
+  //     return null; // Trả về null nếu không tìm thấy tài khoản
+  //   } catch (e) {
+  //     debugPrint('Lỗi khi kiểm tra thông tin đăng nhập: $e');
+  //     return null;
+  //   }
+  // }
+
   Future<String?> _checkCredentials(String email, String password) async {
     if (!_isConnected) {
       if (mounted) {
@@ -86,9 +111,11 @@ class _LoginPageState extends State<LoginPage> {
       final user = await _usersCollection
           .findOne(mongo.where.eq('email', email).eq('password', password));
       if (user != null) {
-        return user['_id'].toString(); // Trả về userId dưới dạng chuỗi
+        final userId = user['_id'].toHexString();
+        debugPrint('userId (Hex): $userId'); // Kiểm tra giá trị
+        return userId;
       }
-      return null; // Trả về null nếu không tìm thấy tài khoản
+      return null;
     } catch (e) {
       debugPrint('Lỗi khi kiểm tra thông tin đăng nhập: $e');
       return null;
